@@ -1,0 +1,12 @@
+name = "StreamReals"
+uuid = "3e03955e-8b1c-44f8-9d19-8602eeb490ce"
+version = "0.1.0"
+authors = ["MatthewJohnHeath <matthew.john.heath@gmail.com>"]
+
+[deps]
+Lazy = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+Lazy = "0.15.1"
+Revise = "3.13.2"
