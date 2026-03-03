@@ -6,6 +6,16 @@ mutable struct StreamReal <: Real
     exponent::BigInt
     significand::SmallReal
 end
+bits_to_show = 20
+function Base.show(io::IO, r::StreamReal)
+    print(io, "StreamReal( ")
+    print(io, toString(head(r.significand)))
+    print(io, ".")
+    for bit in Lazy.take(bits_to_show, tail(r.significand))
+        print(io, toString(bit))
+    end 
+    print(io, "... * 2^", r.exponent - 1 , " )") 
+end 
 
 Base.zero(::Type{<:StreamReal}) = StreamReal(0, zeroes)
 Base.zero(::StreamReal) = zero(StreamReal)

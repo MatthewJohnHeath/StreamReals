@@ -13,7 +13,18 @@ struct NegHalf <: SignedHalfBit end
 struct NegOne <: SignedBit end
 struct NegThreeHalves <: SmallHalfInteger end
 
+toString(::One) = "1"
+toString(::Zero) = "0"
+toString(::NegOne) = "n"
 
+
+Base.show(io::IO, x::One) = print(io, toString(x))
+Base.show(io::IO, x::Half) = print(io, toString(x))
+Base.show(io::IO, x::Zero) = print(io, toString(x))
+Base.show(io::IO, x::NegHalf) = print(io, toString(x))
+Base.show(io::IO, x::NegOne) = print(io, toString(x))
+Base.show(io::IO, x::ThreeHalves) = print(io, toString(x))
+Base.show(io::IO, x::NegThreeHalves) = print(io, toString(x))
 
 Base.:-(::ThreeHalves) = NegThreeHalves()
 Base.:-(::One) = NegOne()
