@@ -1,6 +1,7 @@
-module Reals
-include("smallReals.jl")
+module StreamReals
+include("small_reals.jl")
 
+export StreamReal
 mutable struct StreamReal <: Real
     exponent::BigInt
     significand::SmallReal
@@ -36,8 +37,8 @@ Base.:*(r1::StreamReal, r2::StreamReal) = normalize!(StreamReal(r1.exponent + r2
 function Base.:+(r1::StreamReal, r2::StreamReal)
     (fixed, to_shift) = r1.exponent > r2.exponent ? (r1, r2) : (r2, r1)
     shift_amount = fixed.exponent - to_shift.exponent
-    shifted = Lazy.prepend(Lazy.repeatedly(Zero(), shift_amount), to_shift.significand)
-    normalize!(StreamReal(fixed.exponent, fixed.significand + shifted))
+    shifted = Lazy.concat(Lazy.take(shift_amount, zeroes), to_shift.significand)
+    normalize!(StreamReal(fixed.exponent + 1 , average(fixed.significand, shifted)))
 end
 
 Base.:-(r1::StreamReal, r2::StreamReal) = r1 + (-r2)
