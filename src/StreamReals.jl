@@ -41,6 +41,41 @@ end
 
 StreamReal(x::StreamReal) = x
 
+Base.:*(::Zero, ::T) where T <: Number = zero(T)
+Base.:*(::One, x::Number) = x
+Base.:*(::NegOne, x::Number) = -x
+
+function Base.BigFloat(r::StreamReal)
+    #TODO: make this not worng for leading zeroes in the significand
+    value = zero(BigFloat)
+    power_of_2 = BigFloat(2)^(r.exponent - 1)
+    bits = r.significand
+    for _ in 1:precision(BigFloat)
+        value +=  head(bits)*power_of_2
+        bits = tail(bits)
+        power_of_2 /= 2
+    end
+    value
+end
+(::Type{T})(x::StreamReal) where T <: AbstractFloat = T(BigFloat(x))
+
+function Base.BigInt(r::StreamReal)
+    normalize!(r)
+    value = zero(BigInt)
+    power_of_2 = BigInt(2)^(r.exponent - 1)
+    bits = r.significand
+    while power_of_2 >= 1
+        value +=  head(bits)*power_of_2
+        bits = tail(bits)
+        power_of_2 ÷= 2
+    end
+    value
+end
+
+(::Type{T})(x::StreamReal) where T <: Integer = T(BigInt(x))
+
+Base.promote_rule(::Type{StreamReal}, ::Type{T}) where T <: Number = StreamReal
+
 Base.:-(r::StreamReal) = StreamReal(r.exponent, -r.significand)
 
 Base.:abs(r::StreamReal) = StreamReal(r.exponent, abs(r.significand))
