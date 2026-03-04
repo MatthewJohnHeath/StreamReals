@@ -6,7 +6,7 @@ mutable struct StreamReal <: Real
     exponent::BigInt
     significand::SmallReal
 end
-bits_to_show = 20
+const bits_to_show = 20
 function Base.show(io::IO, r::StreamReal)
     print(io, "StreamReal( ")
     print(io, toString(head(r.significand)))
@@ -21,6 +21,25 @@ Base.zero(::Type{<:StreamReal}) = StreamReal(0, zeroes)
 Base.zero(::StreamReal) = zero(StreamReal)
 Base.one(::Type{<:StreamReal}) = StreamReal(1, One() : zeroes)
 Base.one(::StreamReal) = one(StreamReal)
+
+function StreamReal(x::Number)
+    x == 0 && return zero(StreamReal) 
+    function bits_from_place_n(abs_x::Number, two_to_the_n::Rational)
+        if(abs_x >= two_to_the_n)
+            Lazy.@lazy One() : bits_from_place_n(abs_x - two_to_the_n, two_to_the_n/2)
+        else
+            Lazy.@lazy Zero() : bits_from_place_n(abs_x, two_to_the_n/2)
+        end
+    end
+    power_of_2 = exponent(x) + 1
+    two_to_the_n = Rational{BigInt}(2)^power_of_2
+    abs_significand = bits_from_place_n(abs(x), two_to_the_n)
+    significand = x >= 0 ? abs_significand : -abs_significand
+    normalize!(StreamReal(power_of_2 + 1, significand))
+
+end
+
+StreamReal(x::StreamReal) = x
 
 Base.:-(r::StreamReal) = StreamReal(r.exponent, -r.significand)
 
