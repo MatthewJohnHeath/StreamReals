@@ -6,7 +6,9 @@ mutable struct StreamReal <: Real
     _exponent::BigInt
     _significand::SmallReal
 end
+
 const bits_to_show = 20
+
 function Base.show(io::IO, r::StreamReal)
     print(io, "StreamReal( ")
     print(io, toString(head(r._significand)))
@@ -35,8 +37,7 @@ function StreamReal(x::Number)
     two_to_the_n = Rational{BigInt}(2)^power_of_2
     abs_significand = bits_from_place_n(abs(x), two_to_the_n)
     significand = x >= 0 ? abs_significand : -abs_significand
-    normalize!(StreamReal(power_of_2 + 1, significand))
-
+    _normalize!(StreamReal(power_of_2 + 1, significand))
 end
 
 StreamReal(x::StreamReal) = x
@@ -46,7 +47,8 @@ Base.:*(::One, x::Number) = x
 Base.:*(::NegOne, x::Number) = -x
 
 function Base.BigFloat(r::StreamReal)
-    #TODO: make this not worng for leading zeroes in the significand
+    # if r is zero this will enter an infinite loop which is bad, but what is better?
+    _double_normalize!(r)
     value = zero(BigFloat)
     power_of_2 = BigFloat(2)^(r._exponent - 1)
     bits = r._significand
@@ -57,10 +59,11 @@ function Base.BigFloat(r::StreamReal)
     end
     value
 end
+
 (::Type{T})(x::StreamReal) where T <: AbstractFloat = T(BigFloat(x))
 
 function Base.BigInt(r::StreamReal)
-    normalize!(r)
+    _normalize!(r)
     value = zero(BigInt)
     power_of_2 = BigInt(2)^(r._exponent - 1)
     bits = r._significand
@@ -80,14 +83,13 @@ Base.:-(r::StreamReal) = StreamReal(r._exponent, -r._significand)
 
 Base.:abs(r::StreamReal) = StreamReal(r._exponent, abs(r._significand))
 
-function normalize!(r::StreamReal)
+function normalize_until!(r::StreamReal, stop::Function)
     normalize_step(first::SignedBit, ::SignedBit) = (first, false)
     normalize_step(::Zero, b::SignedBit) = (b, true)
     normalize_step(::NegOne, b::One) = (NegOne(), true)
     normalize_step(::One, ::NegOne) = (One(), true)
     
-    while true
-        r._exponent <= 0 && break
+    while !stop(r)
         new_head, changed = normalize_step(head(r._significand), head(tail(r._significand)))
         !changed && break
         r._exponent -= 1
@@ -96,17 +98,19 @@ function normalize!(r::StreamReal)
     r
 end
 
-Base.:*(r1::StreamReal, r2::StreamReal) = normalize!(StreamReal(r1._exponent + r2._exponent, times(r1._significand, r2._significand)))
+_normalize!(r::StreamReal) = normalize_until!(r, x -> x._exponent <= 0)
+_double_normalize!(r::StreamReal) = normalize_until!(r, x -> false)
+
+Base.:*(r1::StreamReal, r2::StreamReal) = _normalize!(StreamReal(r1._exponent + r2._exponent, times(r1._significand, r2._significand)))
 
 function Base.:+(r1::StreamReal, r2::StreamReal)
     (fixed, to_shift) = r1._exponent > r2._exponent ? (r1, r2) : (r2, r1)
-    shift_amount = fixed.exponent - to_shift.exponent
-    shifted = Lazy.concat(Lazy.take(shift_amount, zeroes), to_shift.significand)
-    normalize!(StreamReal(fixed.exponent + 1 , average(fixed.significand, shifted)))
+    shift_amount = fixed._exponent - to_shift._exponent
+    shifted = Lazy.concat(Lazy.take(shift_amount, zeroes), to_shift._significand)
+    _normalize!(StreamReal(fixed._exponent + 1 , average(fixed._significand, shifted)))
 end
 
 Base.:-(r1::StreamReal, r2::StreamReal) = r1 + (-r2)
-
 
 function concat_all(xs::Lazy.List)
     Lazy.@lazy Lazy.isempty(xs) ? Lazy.list() : 
