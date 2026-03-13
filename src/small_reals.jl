@@ -20,13 +20,9 @@ toString(::NegOne) = "n"
 
 Base.show(io::IO, x::SignedBit) = print(io, toString(x))
 
-Base.:-(::ThreeHalves) = NegThreeHalves()
 Base.:-(::One) = NegOne()
-Base.:-(::Half) = NegHalf()
 Base.:-(::Zero) = Zero()
 Base.:-(::NegOne) = One()
-Base.:-(::NegHalf) = Half()
-Base.:-(::NegThreeHalves) = ThreeHalves()
 
 SmallReal = Lazy.List
 
