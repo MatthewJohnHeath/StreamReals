@@ -46,11 +46,12 @@ Base.:*(::Zero, ::T) where T <: Number = zero(T)
 Base.:*(::One, x::Number) = x
 Base.:*(::NegOne, x::Number) = -x
 
-function (::Type{T})(x::StreamReal) where T <: AbstractFloat
-    zero_cut_off = StreamReal(nextfloat(zero(T))) / 2
-    x < zero_cut_off && return zero(T)
-
-    _double_normalize!(r)
+function (::Type{T})(r::StreamReal) where T <: AbstractFloat
+    little_float = nextfloat(zero(T))
+    needed_places = ceil(Int, -log2(little_float)) + r._exponent + 1
+    _normalize_number_of_places!(r, needed_places)
+    head(r._significand) isa Zero && return zero(T) # was zero past the number of places T can represent
+    
     value = zero(T)
     power_of_2 = T(2)^(r._exponent)
     bits = r._significand
@@ -67,7 +68,7 @@ function (::Type{T})(x::StreamReal) where T <: AbstractFloat
     if(head(bits) isa NegOne && head(tail(bits)) isa NegOne)
         value -= power_of_2
     end
-    
+
     return value
 end
 
@@ -92,23 +93,26 @@ Base.:-(r::StreamReal) = StreamReal(r._exponent, -r._significand)
 
 Base.:abs(r::StreamReal) = StreamReal(r._exponent, abs(r._significand))
 
-function normalize_until!(r::StreamReal, stop::Function)
+function _normalize_until!(r::StreamReal, stop::Function)
     normalize_step(first::SignedBit, ::SignedBit) = (first, false)
     normalize_step(::Zero, b::SignedBit) = (b, true)
     normalize_step(::NegOne, b::One) = (NegOne(), true)
     normalize_step(::One, ::NegOne) = (One(), true)
     
-    while !stop(r)
+    count = 0
+    while !stop(r, count)
         new_head, changed = normalize_step(head(r._significand), head(tail(r._significand)))
         !changed && break
         r._exponent -= 1
         r._significand = new_head:tail(tail(r._significand))
+        count += 1  
     end
     r
 end
 
-_normalize!(r::StreamReal) = normalize_until!(r, x -> x._exponent <= 0)
-_double_normalize!(r::StreamReal) = normalize_until!(r, x -> false)
+_normalize!(r::StreamReal) = _normalize_until!(r, (x, count) -> x._exponent <= 0)
+_double_normalize!(r::StreamReal) = _normalize_until!(r, (x, count) -> false)
+_normalize_number_of_places!(r::StreamReal, n::Int) = _normalize_until!(r, (x, count) -> count >= n)
 
 Base.:*(r1::StreamReal, r2::StreamReal) = _normalize!(StreamReal(r1._exponent + r2._exponent, times(r1._significand, r2._significand)))
 
