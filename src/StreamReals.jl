@@ -48,7 +48,7 @@ Base.:*(::NegOne, x::Number) = -x
 
 function (::Type{T})(r::StreamReal) where T <: AbstractFloat
     little_float = nextfloat(zero(T))
-    needed_places = ceil(Int, -log2(little_float)) + r._exponent + 1
+    needed_places = -exponent(little_float) + r._exponent + 1
     _normalize_number_of_places!(r, needed_places)
     head(r._significand) isa Zero && return zero(T) # was zero past the number of places T can represent
     
@@ -99,7 +99,7 @@ function _normalize_until!(r::StreamReal, stop::Function)
     normalize_step(::NegOne, b::One) = (NegOne(), true)
     normalize_step(::One, ::NegOne) = (One(), true)
     
-    count = 0
+    count = BigInt(0)
     while !stop(r, count)
         new_head, changed = normalize_step(head(r._significand), head(tail(r._significand)))
         !changed && break
@@ -112,7 +112,7 @@ end
 
 _normalize!(r::StreamReal) = _normalize_until!(r, (x, count) -> x._exponent <= 0)
 _double_normalize!(r::StreamReal) = _normalize_until!(r, (x, count) -> false)
-_normalize_number_of_places!(r::StreamReal, n::Int) = _normalize_until!(r, (x, count) -> count >= n)
+_normalize_number_of_places!(r::StreamReal, n::Union{Int, BigInt}) = _normalize_until!(r, (x, count) -> count >= n)
 
 Base.:*(r1::StreamReal, r2::StreamReal) = _normalize!(StreamReal(r1._exponent + r2._exponent, times(r1._significand, r2._significand)))
 
