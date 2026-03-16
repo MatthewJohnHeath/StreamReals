@@ -46,8 +46,10 @@ Base.:*(::Zero, ::T) where T <: Number = zero(T)
 Base.:*(::One, x::Number) = x
 Base.:*(::NegOne, x::Number) = -x
 
-function Base.BigFloat(r::StreamReal)
-    # if r is zero this will enter an infinite loop which is bad, but what is better?
+function (::Type{T})(x::StreamReal) where T <: AbstractFloat
+    zero_cut_off = StreamReal(nextfloat(zero(T))) / 2
+    x < zero_cut_off && return zero(T)
+
     _double_normalize!(r)
     value = zero(BigFloat)
     power_of_2 = BigFloat(2)^(r._exponent - 1)
@@ -59,8 +61,6 @@ function Base.BigFloat(r::StreamReal)
     end
     value
 end
-
-(::Type{T})(x::StreamReal) where T <: AbstractFloat = T(BigFloat(x))
 
 function Base.BigInt(r::StreamReal)
     _normalize!(r)
