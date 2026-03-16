@@ -51,15 +51,24 @@ function (::Type{T})(x::StreamReal) where T <: AbstractFloat
     x < zero_cut_off && return zero(T)
 
     _double_normalize!(r)
-    value = zero(BigFloat)
-    power_of_2 = BigFloat(2)^(r._exponent - 1)
+    value = zero(T)
+    power_of_2 = T(2)^(r._exponent)
     bits = r._significand
-    for _ in 1:precision(BigFloat)
+    for _ in 1:precision(T)
+        power_of_2 /= 2
         value +=  head(bits)*power_of_2
         bits = tail(bits)
-        power_of_2 /= 2
     end
-    value
+
+    if(head(bits) isa One && head(tail(bits)) isa One)
+        value += power_of_2
+    end
+    
+    if(head(bits) isa NegOne && head(tail(bits)) isa NegOne)
+        value -= power_of_2
+    end
+    
+    return value
 end
 
 function Base.BigInt(r::StreamReal)
