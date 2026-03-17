@@ -92,10 +92,3 @@ function Base.abs(r::SmallReal)
     return first_bit * r
 end
 
-function is_positive(r::SmallReal)
-    # If r is zero because all bits are zero, then this wil be an infinite loop.
-    left_shifted_to_non_zero = Lazy.dropwhile(x -> x isa Zero, r)
-    head(left_shifted_to_non_zero) isa NegOne && return false
-    # If r is zero because it is zeroes then a One and then all NegOne, then this wil be an infinite loop.
-   return Lazy.any(x -> !(x isa NegOne), left_shifted_to_non_zero)
-end

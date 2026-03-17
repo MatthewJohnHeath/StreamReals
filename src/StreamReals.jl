@@ -125,13 +125,24 @@ end
 
 Base.:-(r1::StreamReal, r2::StreamReal) = r1 + (-r2)
 
-is_positive(r::StreamReal) = is_positive(r._significand)
+function is_positive(r::StreamReal)
+    # If r is zero because all bits are zero, then this wil be an infinite loop.
+    r._significand = Lazy.dropwhile(x -> x isa Zero, r._significand)
+    head(r._significand) isa NegOne && return false
+    # If r is zero because it is zeroes then a One and then all NegOne, then this wil be an infinite loop.
+   return Lazy.any(x -> !(x isa NegOne), r._significand)
+end
+
+function is_zero(r::StreamReal)
+    _double_normalize!(r)
+    false
+end
 
 Base.:(<)(r1::StreamReal, r2::StreamReal) = is_positive(r2 - r1)
 Base.:(>)(r1::StreamReal, r2::StreamReal) = is_positive(r1 - r2)
 Base.:(<=)(r1::StreamReal, r2::StreamReal) = !is_positive(r1 - r2)
 Base.:(>=)(r1::StreamReal, r2::StreamReal) = !is_positive(r2 - r1)
-Base.:(==)(r1::StreamReal, r2::StreamReal) = (r1<=r2) && (r1>=r2)
+Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
 
 function concat_all(xs::Lazy.List)
     Lazy.@lazy Lazy.isempty(xs) ? Lazy.list() : 
