@@ -146,4 +146,9 @@ Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
 
 Base.hash(::StreamReal, ::UInt) = error("Hashing StreamReals is not supported because it would require evaluating all bits of the significand, which may be infinite.")
 
+function Base.inv(r::StreamReal)
+   function reciprocal_loop(accumulator::StreamReal, bits_done::BigInt, error_limit::Rational(BigInt))
+   #todo
+    end
+end
 end
