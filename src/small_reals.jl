@@ -44,12 +44,12 @@ average_half_bits(xs::SmallReal, ys::SmallReal) = Lazy.@lazy bit_average(head(xs
 Base.:+(::Zero, h::Zero) = h
 Base.:+(::Zero, h::SignedHalfBit) = h
 Base.:+(b::SignedBit, ::Zero) = b
-Base.:+(::One, ::One) = error("Out of range of SmallHalfInteger")
+Base.:+(::One, x::One) = error("$x is out of range of SmallHalfInteger")
 Base.:+(::One, ::NegOne) = Zero()
 Base.:+(::One, ::Half) = ThreeHalves()
 Base.:+(::One, ::NegHalf) = Half()
-Base.:+(::NegOne, x::One) = Zero()
-Base.:+(::NegOne, ::NegOne) = error("Out of range of SmallHalfInteger")
+Base.:+(::NegOne, ::One) = Zero()
+Base.:+(::NegOne, x::NegOne) = error("$x is out of range of SmallHalfInteger")
 Base.:+(::NegOne, ::Half) = NegHalf()
 Base.:+(::NegOne, ::NegHalf) = NegThreeHalves()
 
@@ -58,8 +58,10 @@ bit_and_carry(target::SignedBit, ::SignedHalfBit) = (target, Zero())
 bit_and_carry(::ThreeHalves, ::SignedHalfBit) = (One(), One())
 bit_and_carry(::Half, ::SignedHalfBit) = (Zero(), One())
 bit_and_carry(::Half, ::One) = (One(), NegOne())
+bit_and_carry(::Half, ::Half) = (One(), NegOne())
 bit_and_carry(::NegHalf, ::SignedHalfBit) = (Zero(), NegOne())
 bit_and_carry(::NegHalf, ::NegOne) = (NegOne(), One())
+bit_and_carry(::NegHalf, ::NegHalf) = (NegOne(), One())
 bit_and_carry(::NegThreeHalves, ::SignedHalfBit) = (NegOne(), NegOne())
 
 function dehalf_bits(xs::SmallReal, carry::SignedBit = Zero()) 
