@@ -175,4 +175,5 @@ function Base.inv(r::StreamReal)
     StreamReal(-r._exponent + 2, significand)
 end
 
+Base.:/(r1::StreamReal, r2::StreamReal) = r1 * inv(r2) 
 end
