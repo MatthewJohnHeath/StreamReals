@@ -88,6 +88,7 @@ end
 (::Type{T})(x::StreamReal) where T <: Integer = T(BigInt(x))
 
 Base.promote_rule(::Type{StreamReal}, ::Type{T}) where T <: Number = StreamReal
+Base.promote_rule(::Type{StreamReal}, ::Type{BigFloat}) = StreamReal
 
 Base.:-(r::StreamReal) = StreamReal(r._exponent, -r._significand)
 
@@ -146,9 +147,28 @@ Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
 
 Base.hash(::StreamReal, ::UInt) = error("Hashing StreamReals is not supported because it would require evaluating all bits of the significand, which may be infinite.")
 
-function Base.inv(r::StreamReal)
-   function reciprocal_loop(accumulator::StreamReal, bits_done::BigInt, error_limit::Rational(BigInt))
-   #todo
-    end
+# function Base.inv(r::StreamReal)
+#    function reciprocal_loop(
+#     medium_sized::StreamReal,
+#     estimate::StreamReal, 
+#     yield_list::SmallReal,
+#     to_yield::BigInt,
+#     bits_done::BigInt)
+#         if(to_yield  > 0)
+#             return Lazy.@lazy head(yield_list) : reciprocal_loop(medium_sized, estimate, tail(yield_list), to_yield - 1, bits_done + 1)
+#         end
+#         new_estmate = 2*estimate - medium_sized * estimate^2
+
+#     end
+#     _double_normalize!(r)
+# end
+
+
+third = StreamReal(1//3)
+ninth = third * third
+for i in 1:100
+    bit = head(ninth._significand)
+    ninth._significand = tail(ninth._significand)
+    println(bit)
 end
 end
