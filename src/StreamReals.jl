@@ -143,9 +143,9 @@ Base.:(<)(r1::StreamReal, r2::StreamReal) = is_positive(r2 - r1)
 Base.:(>)(r1::StreamReal, r2::StreamReal) = is_positive(r1 - r2)
 Base.:(<=)(r1::StreamReal, r2::StreamReal) = !is_positive(r1 - r2)
 Base.:(>=)(r1::StreamReal, r2::StreamReal) = !is_positive(r2 - r1)
-Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
+Base.:(==)(r1::StreamReal, r2::StreamReal) = r1 === r2 || is_zero(r1 - r2)
 
-Base.hash(::StreamReal, ::UInt) = error("Hashing StreamReals is not supported because it would require evaluating all bits of the significand, which may be infinite.")
+Base.hash(r::StreamReal, h::UInt) = hash(Float64(r), h)
 
 function Base.inv(r::StreamReal)
    
