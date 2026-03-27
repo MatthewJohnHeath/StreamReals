@@ -147,21 +147,34 @@ Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
 
 Base.hash(::StreamReal, ::UInt) = error("Hashing StreamReals is not supported because it would require evaluating all bits of the significand, which may be infinite.")
 
-# function Base.inv(r::StreamReal)
-#    function reciprocal_loop(
-#     medium_sized::StreamReal,
-#     estimate::StreamReal, 
-#     yield_list::SmallReal,
-#     to_yield::BigInt,
-#     bits_done::BigInt)
-#         if(to_yield  > 0)
-#             return Lazy.@lazy head(yield_list) : reciprocal_loop(medium_sized, estimate, tail(yield_list), to_yield - 1, bits_done + 1)
-#         end
-#         new_estmate = 2*estimate - medium_sized * estimate^2
+function Base.inv(r::StreamReal)
+   function zero_front(r::SmallReal)
+        first_bit = head(r)
+        second_bit = head(tail(r))
+        
+        if(first_bit isa One && second_bit isa NegOne)
+            Lazy.@lazy Zero() :  zero_front(One() : tail(tail(r)))
+        elseif(first_bit isa NegOne && second_bit isa One)
+            Lazy.@lazy Zero() :  zero_front(NegOne() : tail(tail(r)))
+        else
+            r
+        end
+    end
+   
+    function reciprocal_loop(
+    medium_sized::StreamReal,
+    estimate::StreamReal, 
+    yield_list::SmallReal,
+    to_yield::BigInt,
+    bits_done::BigInt)
+        if(to_yield  > 0)
+            return Lazy.@lazy head(yield_list) : reciprocal_loop(medium_sized, estimate, tail(yield_list), to_yield - 1, bits_done + 1)
+        end
+        new_estmate = 2*estimate - medium_sized * estimate^2
 
-#     end
-#     _double_normalize!(r)
-# end
+    end
+    _double_normalize!(r)
+end
 
 
 third = StreamReal(1//3)
