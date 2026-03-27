@@ -148,40 +148,30 @@ Base.:(==)(r1::StreamReal, r2::StreamReal) = is_zero(r1 - r2)
 Base.hash(::StreamReal, ::UInt) = error("Hashing StreamReals is not supported because it would require evaluating all bits of the significand, which may be infinite.")
 
 function Base.inv(r::StreamReal)
-   function zero_front(r::SmallReal)
-        first_bit = head(r)
-        second_bit = head(tail(r))
-        
-        if(first_bit isa One && second_bit isa NegOne)
-            Lazy.@lazy Zero() :  zero_front(One() : tail(tail(r)))
-        elseif(first_bit isa NegOne && second_bit isa One)
-            Lazy.@lazy Zero() :  zero_front(NegOne() : tail(tail(r)))
-        else
-            r
-        end
-    end
    
-    function reciprocal_loop(
-    medium_sized::StreamReal,
-    estimate::StreamReal, 
-    yield_list::SmallReal,
-    to_yield::BigInt,
-    bits_done::BigInt)
-        if(to_yield  > 0)
-            return Lazy.@lazy head(yield_list) : reciprocal_loop(medium_sized, estimate, tail(yield_list), to_yield - 1, bits_done + 1)
-        end
-        new_estmate = 2*estimate - medium_sized * estimate^2
-
+    function zero_front(small::SmallReal)
+        first_bit = head(small)
+        second_bit = head(tail(small))        
+        first_bit isa One && second_bit isa NegOne && return Lazy.@lazy Zero() : zero_front(One() : tail(tail(small)))
+        first_bit isa NegOne && second_bit isa One && return Lazy.@lazy Zero() : zero_front(NegOne() : tail(tail(small)))
+        return small
     end
-    _double_normalize!(r)
+
+    _double_normalize!(r)   
+    medium_sized = StreamReal(0, r._significand)
+    
+    function reciprocal_loop(estimate::StreamReal, bits_done::BigInt)
+        to_yield = Lazy.take(bits_done - 1, Lazy.drop(bits_done, estimate._significand))
+        delta = zero_front(estimate - medium_sized * estimate^2)
+        Lazy.concat(to_yield, reciprocal_loop(estimate + delta, 2 * bits_done - 1))
+    end
+
+    first_approximation = (1/Float64(medium_sized)) |> StreamReal
+    significand = reciprocal_loop(first_approximation, precision(Float64) - 1)
+    
+    StreamReal(-r._exponent + 1, significand)
+
 end
 
 
-third = StreamReal(1//3)
-ninth = third * third
-for i in 1:100
-    bit = head(ninth._significand)
-    ninth._significand = tail(ninth._significand)
-    println(bit)
-end
 end
