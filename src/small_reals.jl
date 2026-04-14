@@ -75,9 +75,15 @@ average(xs::SmallReal, ys::SmallReal) = dehalf_bits(average_half_bits(xs, ys))
 
 Base.:+(::Zero, xs::SmallReal) = xs
 function Base.:+(b::SignedBit, xs::SmallReal)
-    (head(xs) == b) && return error("$b + $xs is out of range of SmallReal")
-    (head(xs) isa Zero) && return Lazy.@lazy b : (b + tail(xs))
-    return b:tail(xs)
+    if head(xs) == -b
+        return b:tail(xs)
+    elseif head(xs) isa Zero
+        return Lazy.@lazy b : (b + tail(xs))
+    elseif head(xs) == b
+        rest = tail(xs)
+        (head(rest) != -b) && return error("$b + $xs is out of range of SmallReal")
+        return b + (Zero() : b : tail(rest))
+    end
 end
 Base.:+(xs::SmallReal, b::SignedBit) = b + xs
 
