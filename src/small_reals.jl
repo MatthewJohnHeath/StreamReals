@@ -64,7 +64,7 @@ bit_and_carry(::NegHalf, ::NegOne) = (NegOne(), One())
 bit_and_carry(::NegHalf, ::NegHalf) = (NegOne(), One())
 bit_and_carry(::NegThreeHalves, ::SignedHalfBit) = (NegOne(), NegOne())
 
-function dehalf_bits(xs::Lazy.List, carry::SignedBit = Zero()) 
+function dehalf_bits(xs::Lazy.List, carry::SignedBit = Zero())
     target = carry + head(xs)
     rest = tail(xs)
     (bit, carry) = bit_and_carry(target, head(rest))
@@ -103,22 +103,17 @@ Base.:*(::One, xs::SmallReal) = xs
 Base.:*(::NegOne, xs::SmallReal) = -xs
 
 function product_loop(xs::SmallReal, ys::SmallReal, acc::SmallReal)
-    partial_sum = acc + (Zero() : head(xs) * ys) 
+    function against_zero(xs::SmallReal)
+        first_bit = head(xs)
+        !(first_bit isa Zero) && return Lazy.@lazy first_bit : against_zero(tail(xs))
+        rest = tail(xs)
+        second_bit = head(rest)
+        return Lazy.@lazy second_bit : against_zero(-second_bit : tail(rest))
+    end
+    
+    partial_sum = against_zero(acc + (Zero() : head(xs) * ys))
     return Lazy.@lazy head(partial_sum) : product_loop(tail(xs) , ys, tail(partial_sum))
 end
-
-# function print_product(xs::SmallReal, ys::SmallReal)
-#     acc = zeroes
-#     while true
-#         acc = unsafe_add(acc, Zero() : head(xs) * ys) 
-#         print(head(acc))
-#         xs = tail(xs)
-#         acc = tail(acc)
-#     end
-# end
-
-# two_thirds = Lazy.@lazy One():Zero():two_thirds
-# print_product(two_thirds, two_thirds)
 
 times(xs::SmallReal, ys::SmallReal) = product_loop(xs, ys, zeroes)
 
