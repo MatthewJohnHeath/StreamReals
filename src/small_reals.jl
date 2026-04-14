@@ -64,7 +64,7 @@ bit_and_carry(::NegHalf, ::NegOne) = (NegOne(), One())
 bit_and_carry(::NegHalf, ::NegHalf) = (NegOne(), One())
 bit_and_carry(::NegThreeHalves, ::SignedHalfBit) = (NegOne(), NegOne())
 
-function dehalf_bits(xs::SmallReal, carry::SignedBit = Zero()) 
+function dehalf_bits(xs::Lazy.List, carry::SignedBit = Zero())
     target = carry + head(xs)
     rest = tail(xs)
     (bit, carry) = bit_and_carry(target, head(rest))
@@ -73,7 +73,28 @@ end
 
 average(xs::SmallReal, ys::SmallReal) = dehalf_bits(average_half_bits(xs, ys))
 
-unsafe_add(xs::SmallReal, ys::SmallReal) = tail(average(xs, ys))
+Base.:+(::Zero, xs::SmallReal) = xs
+function Base.:+(b::SignedBit, xs::SmallReal)
+    if head(xs) == -b
+        return b:tail(xs)
+    elseif head(xs) isa Zero
+        return Lazy.@lazy b : (b + tail(xs))
+    elseif head(xs) == b
+        rest = tail(xs)
+        (head(rest) != -b) && return error("$b + $xs is out of range of SmallReal")
+        return b + (Zero() : b : tail(rest))
+    end
+end
+Base.:+(xs::SmallReal, b::SignedBit) = b + xs
+
+function Base.:+(xs::SmallReal, ys::SmallReal)
+    half_sum = average(xs, ys)
+    try
+        return head(half_sum) + tail(half_sum)
+    catch
+        return error("The sum of $xs and $ys is out of range of SmallReal")
+    end
+end
 
 zeroes = Lazy.constantly(Zero())
 
@@ -82,7 +103,15 @@ Base.:*(::One, xs::SmallReal) = xs
 Base.:*(::NegOne, xs::SmallReal) = -xs
 
 function product_loop(xs::SmallReal, ys::SmallReal, acc::SmallReal)
-    partial_sum = unsafe_add(acc, Zero() : head(xs) * ys) 
+    function against_zero(xs::SmallReal)
+        first_bit = head(xs)
+        !(first_bit isa Zero) && return Lazy.@lazy first_bit : against_zero(tail(xs))
+        rest = tail(xs)
+        second_bit = head(rest)
+        return Lazy.@lazy second_bit : against_zero(-second_bit : tail(rest))
+    end
+    
+    partial_sum = against_zero(acc + (Zero() : head(xs) * ys))
     return Lazy.@lazy head(partial_sum) : product_loop(tail(xs) , ys, tail(partial_sum))
 end
 

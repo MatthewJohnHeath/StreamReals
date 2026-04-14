@@ -147,7 +147,7 @@ Base.:(==)(r1::StreamReal, r2::StreamReal) = (r1 === r2) || is_zero(r1 - r2)
 
 Base.hash(r::StreamReal, h::UInt) = hash(Float64(r), h)
 
-function Base.inv(r::StreamReal)
+function print_inv(r::StreamReal) #Base.inv(r::StreamReal)
    
     function zero_front(small::SmallReal)
         first_bit = head(small)
@@ -167,13 +167,29 @@ function Base.inv(r::StreamReal)
         Lazy.@lazy Lazy.concat(to_yield, reciprocal_loop(estimate + delta, 2 * bits_done - 1))
     end
 
+    function print_reciprocal_loop(estimate::StreamReal, bits_done::BigInt)
+        while true
+            to_yield = Lazy.take(bits_done - 1, Lazy.drop(bits_done, estimate._significand))
+            delta = estimate - medium_sized * estimate^2
+            delta._significand = zero_front(delta._significand)
+            print(to_yield)
+            estimate = estimate + delta
+            bits_done = 2 * bits_done - 1
+        end
+    end
+
+
     first_approximation = (1/Float64(medium_sized)) |> StreamReal
     number_taken_at_start = BigInt(precision(Float64) - 1)
     taken_at_start = Lazy.take(number_taken_at_start, first_approximation._significand)
     significand = Lazy.concat(taken_at_start, reciprocal_loop(first_approximation, number_taken_at_start))
-    
-    StreamReal(-r._exponent + 2, significand)
+    print(taken_at_start)
+    print_reciprocal_loop(first_approximation, number_taken_at_start)
+   #StreamReal(-r._exponent + 2, significand)
 end
 
 Base.:/(r1::StreamReal, r2::StreamReal) = r1 * inv(r2) 
+
+third = StreamReal(1/3)
+print_inv(third)
 end
